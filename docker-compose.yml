@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: apsan_postgres
+    environment:
+      POSTGRES_USER: apsan_user
+      POSTGRES_PASSWORD: apsan_password
+      POSTGRES_DB: apsan_management
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U apsan_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - apsan_network
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: apsan_backend
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      DATABASE_URL: postgresql://apsan_user:apsan_password@postgres:5432/apsan_management
+      JWT_SECRET: your_jwt_secret_key_change_in_production
+      CORS_ORIGIN: http://localhost:3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    networks:
+      - apsan_network
+    command: npm run dev
+
+  # Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: apsan_frontend
+    ports:
+      - "3000:3000"
+    environment:
+      REACT_APP_API_URL: http://localhost:3001
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - apsan_network
+    command: npm start
+
+volumes:
+  postgres_data:
+
+networks:
+  apsan_network:
+    driver: bridge
