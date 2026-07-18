@@ -1,14 +1,4 @@
-FROM node:18-alpine
 
-WORKDIR /app
-
-COPY package*.json ./
-RUN npm install
-
-COPY . .
-
-RUN npm run build
-
-EXPOSE 3001
-
-CMD ["npm", "start"]
+git clone https://github.com/eduardogabrielngongo-byte/apsan-management-system.git
+cd apsan-management-system
+docker-compose up
